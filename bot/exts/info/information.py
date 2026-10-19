@@ -260,6 +260,10 @@ class Information(Cog):
         # Will redirect to #bot-commands if it fails.
         if in_whitelist_check(ctx, roles=constants.STAFF_AND_COMMUNITY_ROLES):
             embed = await self.create_user_embed(ctx, user, passed_as_message)
+            message = await ctx.send(embed=embed)
+            is_target_mod = isinstance(user, discord.Member) and any(role.id in constants.MODERATION_ROLES for role in user.roles)
+            if is_mod_channel(ctx.channel) and not is_target_mod:
+                await message.add_reaction("🔍")
             await ctx.send(embed=embed)
 
     async def create_user_embed(self, ctx: Context, user: MemberOrUser, passed_as_message: bool) -> Embed:
@@ -320,11 +324,16 @@ class Information(Cog):
             await self.user_messages(user),
         ]
 
+        #Sees if the user target has moderation role:
+        is_target_mod = isinstance(user, discord.Member) and any(role.id in constants.MODERATION_ROLES for role in user.roles)
+
         # Show more verbose output in moderation channels for infractions and nominations
         if is_mod_channel(ctx.channel):
             fields.append(await self.expanded_user_infraction_counts(user))
             fields.append(await self.user_nomination_counts(user))
             fields.append(await self.user_alt_count(user))
+            if not is_target_mod:
+                fields.append(("Infractions:",f"Touch this to see all the infraction list --> 🔍"))
         else:
             fields.append(await self.basic_user_infraction_counts(user))
 
